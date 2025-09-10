@@ -1,10 +1,10 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import React, { useCallback, useEffect } from "react";
-import { GameBoard, LetterTray } from "./components";
-import { drawLetters } from "./letters";
-import type { GameState, Letter, PlacedLetter } from "./types";
-import { BOARD_WIDTH, BOARD_HEIGHT, KEY_ACCEPT, KEY_REJECT, KEY_BACKSPACE } from "./config";
+import { GameBoard, LetterTray } from ".";
+import { drawLetters } from "../letters";
+import type { GameState, Letter, PlacedLetter } from "../types";
+import { BOARD_WIDTH, BOARD_HEIGHT, KEY_ACCEPT, KEY_REJECT, KEY_BACKSPACE } from "../config";
 
 export const App = ({ url }: { url: AutomergeUrl }) => {
   const [doc, changeDoc] = useDocument<GameState>(url);
@@ -67,10 +67,10 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
     changeDoc((doc) => {
       // Move temporary placements to board
       doc.temporaryPlacements.forEach((placement) => {
-        doc.board[placement.y][placement.x] = structuredClone({
+        doc.board[placement.y][placement.x] = {
           ...placement,
           isTemporary: false,
-        });
+        };
       });
 
       doc.temporaryPlacements = [];

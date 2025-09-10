@@ -1,0 +1,48 @@
+---
+description: Code style rules for React/TypeScript word grid game
+globs:
+alwaysApply: true
+---
+
+## Function Style
+
+- Use arrow function expressions instead of function declarations
+- Prefer `const` for component declarations and exported functions
+- Use `React.FC` type annotation for functional components
+
+## TypeScript Conventions
+
+- Use `type` instead of `interface` for object type definitions
+- Use `type` imports with `import type` syntax for type-only imports
+- Prefer explicit return types for exported functions
+
+## React Patterns
+
+- Use destructured props in component parameters
+- Prefer `useCallback` for event handlers passed to child components
+- Use proper dependency arrays in hooks
+- Export components as named exports, not default exports
+
+## Code Organization
+
+- Keep component files focused on a single component
+- Use barrel exports in `index.ts` files for clean imports
+- Group related functionality in the same directory
+
+## Naming Conventions
+
+- Use PascalCase for components and interfaces
+- Use camelCase for variables, functions, and props
+- Use SCREAMING_SNAKE_CASE for constants and enums
+- Prefix boolean props and variables with `is`, `has`, or `should`
+
+## Styling & CSS
+
+- Use Tailwind CSS utility classes
+- Prefer template literals for complex conditional className logic
+- Use semantic spacing and sizing utilities
+- Group related classes together in className strings
+
+## Automerge
+
+- Store all state in automerge documents unless asked otherwise

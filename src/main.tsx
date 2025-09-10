@@ -5,10 +5,13 @@ import { WebSocketClientAdapter } from "@automerge/automerge-repo-network-websoc
 import { createRoot } from "react-dom/client";
 import { RepoContext } from "@automerge/automerge-repo-react-hooks";
 import "./index.css";
-import { App } from "./App";
+import { App } from "./components/App";
+import type { GameState } from "./types";
+import { createInitialGameState } from "./letters";
+import { WEBSOCKET_URL } from "./config";
 
 const repo = new Repo({
-  network: [new WebSocketClientAdapter("wss://sync3.automerge.org")],
+  network: [new WebSocketClientAdapter(WEBSOCKET_URL)],
   storage: new IndexedDBStorageAdapter(),
 });
 
@@ -17,7 +20,7 @@ let handle;
 if (isValidAutomergeUrl(docUrl)) {
   handle = await repo.find(docUrl);
 } else {
-  handle = repo.create<{ count: number }>({ count: 0 });
+  handle = repo.create<GameState>(createInitialGameState());
   document.location.hash = handle.url;
 }
 
