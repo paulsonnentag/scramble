@@ -17,4 +17,5 @@ export type PlayerState = {
 export interface GameState {
   board: BoardGrid;
   players: { [playerId: string]: PlayerState };
+  language: string; // Language code (e.g., "en", "de")
 }

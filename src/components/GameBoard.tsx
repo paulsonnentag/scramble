@@ -11,7 +11,13 @@ interface GameBoardProps {
   onCellSelect: (x: number, y: number) => void;
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements, selectedCell, placementDirection, onCellSelect }) => {
+export const GameBoard: React.FC<GameBoardProps> = ({
+  board,
+  temporaryPlacements,
+  selectedCell,
+  placementDirection,
+  onCellSelect,
+}) => {
   const getHighlightedCells = () => {
     if (!selectedCell) return new Set<string>();
 
@@ -33,7 +39,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
     return highlighted;
   };
 
-  const getCellContent = (x: number, y: number): { letter: LetterType | null; isTemporary: boolean } => {
+  const getCellContent = (
+    x: number,
+    y: number
+  ): { letter: LetterType | null; isTemporary: boolean } => {
     // Check for permanent letter first
     const permanentLetter = board[x]?.[y];
     if (permanentLetter) return { letter: permanentLetter, isTemporary: false };
@@ -81,7 +90,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
   }, []);
 
   return (
-    <div className="bg-gray-500 p-1 rounded-lg shadow-lg">
+    <div className="bg-gray-300 p-1 rounded-lg shadow-lg">
       <div
         className="mx-auto"
         style={{
@@ -99,7 +108,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
             const isHighlighted = highlightedCells.has(cellKey);
             const cellContent = getCellContent(x, y);
 
-            return <LetterView key={cellKey} letter={cellContent.letter} onClick={() => onCellSelect(x, y)} isSelected={isSelected} isHighlighted={isHighlighted} isTemporary={cellContent.isTemporary} variant="board" cellSize={cellSize} />;
+            return (
+              <LetterView
+                key={cellKey}
+                letter={cellContent.letter}
+                onClick={() => onCellSelect(x, y)}
+                isSelected={isSelected}
+                isHighlighted={isHighlighted}
+                isTemporary={cellContent.isTemporary}
+                variant="board"
+                cellSize={cellSize}
+              />
+            );
           })
         )}
       </div>

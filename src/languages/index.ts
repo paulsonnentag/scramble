@@ -1,6 +1,6 @@
 import { Language, type LanguageDescription } from "./Language";
-import { English, ENGLISH_DESCRIPTION } from "./English";
-import { German, GERMAN_DESCRIPTION } from "./German";
+import { ENGLISH_LETTER_DISTRIBUTION, ENGLISH_DESCRIPTION } from "./English";
+import { GERMAN_LETTER_DISTRIBUTION, GERMAN_DESCRIPTION } from "./German";
 
 export type SupportedLanguage = "en" | "de";
 
@@ -38,12 +38,12 @@ export async function loadLanguage(
 
     console.log(`Loaded ${words.length} words for language: ${languageCode}`);
 
-    // Create the appropriate language instance
+    // Create the appropriate language instance with distribution
     switch (languageCode) {
       case "en":
-        return new English(words);
+        return new Language(words, ENGLISH_LETTER_DISTRIBUTION);
       case "de":
-        return new German(words);
+        return new Language(words, GERMAN_LETTER_DISTRIBUTION);
       default:
         throw new Error(`Unsupported language: ${languageCode}`);
     }

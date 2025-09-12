@@ -1,6 +1,6 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -9,6 +9,8 @@ import {
   KEY_REJECT,
 } from "../config";
 import { fillTray } from "../letters";
+import { loadLanguage } from "../languages";
+import { Language } from "../languages/Language";
 import type { GameState, Letter } from "../types";
 import { toJS } from "../utils";
 import { GameBoard } from "./GameBoard";
@@ -16,7 +18,15 @@ import { LetterTray } from "./LetterTray";
 
 export const App = ({ url }: { url: AutomergeUrl }) => {
   const [doc, changeDoc] = useDocument<GameState>(url);
+  const [language, setLanguage] = useState<Language | null>(null);
   const playerId = "player1"; // For now, assume single player
+
+  // Load language when doc changes
+  useEffect(() => {
+    if (doc?.language && !language) {
+      loadLanguage(doc.language as any).then(setLanguage);
+    }
+  }, [doc?.language, language]);
 
   const handleCellSelect = useCallback(
     (x: number, y: number) => {
@@ -96,9 +106,11 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
       });
 
       player.temporaryPlacements = {};
-      fillTray(player.tray);
+      if (language) {
+        fillTray(player.tray, language);
+      }
     });
-  }, [changeDoc, playerId]);
+  }, [changeDoc, playerId, language]);
 
   const handleRejectPlacements = useCallback(() => {
     changeDoc((doc) => {
@@ -222,6 +234,7 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
   ]);
 
   if (!doc) return <div>Loading...</div>;
+  if (!language) return <div>Loading language...</div>;
 
   const player = doc.players[playerId];
   if (!player) return <div>Player not found</div>;

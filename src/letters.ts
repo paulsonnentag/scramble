@@ -1,40 +1,24 @@
 import type { Letter, GameState } from "./types";
-import {
-  LETTER_DISTRIBUTION,
-  VOWELS,
-  TRAY_SIZE,
-  TARGET_VOWEL_RATIO,
-  type LetterKey,
-} from "./config";
+import { TRAY_SIZE, TARGET_VOWEL_RATIO } from "./config";
+import { Language } from "./languages/Language";
 
-let nextLetterId = 0;
+export function fillTray(
+  currentTray: (Letter | null)[],
+  language: Language
+): void {
+  // Balance vowels and consonants using the language's distribution
+  let vowelsInTray = 0;
+  let totalInTray = 0;
 
-export function generateRandomLetter(): Letter {
-  // Get all available letters with their relative weights (counts)
-  const letterOptions: LetterKey[] = [];
-
-  Object.entries(LETTER_DISTRIBUTION).forEach(([letter, { count }]) => {
-    // Add each letter multiple times based on its distribution count
-    for (let i = 0; i < count; i++) {
-      letterOptions.push(letter as LetterKey);
+  // Count existing letters
+  for (const letter of currentTray) {
+    if (letter !== null) {
+      totalInTray++;
+      if (language.isVowel(letter.value)) {
+        vowelsInTray++;
+      }
     }
-  });
-
-  // Pick a random letter from the weighted distribution
-  const randomIndex = Math.floor(Math.random() * letterOptions.length);
-  const selectedLetter = letterOptions[randomIndex];
-
-  return {
-    id: `${selectedLetter}-${nextLetterId++}`,
-    value: selectedLetter,
-  };
-}
-export function fillTray(currentTray: (Letter | null)[]): void {
-  // Balance vowels and consonants
-  let vowelsInTray = currentTray.filter(
-    (l) => l !== null && VOWELS.includes(l.value as any)
-  ).length;
-  let totalInTray = currentTray.filter((l) => l !== null).length;
+  }
 
   const targetVowelRatio = TARGET_VOWEL_RATIO; // Aim for configured vowel ratio
 
@@ -50,69 +34,42 @@ export function fillTray(currentTray: (Letter | null)[]): void {
 
     let preferVowels = currentRatio < targetVowelRatio;
 
-    let selectedLetter: Letter;
+    let letter: Letter;
 
     if (preferVowels) {
-      // Generate a vowel
-      selectedLetter = generateRandomVowel();
-      vowelsInTray++;
+      // Generate a vowel using the language class
+      const letterValue = language.getRandomVowel();
+      letter = {
+        id: crypto.randomUUID(),
+        value: letterValue,
+      };
+      if (language.isVowel(letterValue)) {
+        vowelsInTray++;
+      }
     } else {
-      // Generate a consonant
-      selectedLetter = generateRandomConsonant();
+      // Generate a consonant using the language class
+      const letterValue = language.getRandomConsonant();
+      letter = {
+        id: crypto.randomUUID(),
+        value: letterValue,
+      };
     }
 
     // Insert the new letter into the tray
-    currentTray[i] = selectedLetter;
+    currentTray[i] = letter;
     totalInTray++;
   }
 }
 
-function generateRandomVowel(): Letter {
-  const vowelOptions: LetterKey[] = [];
+export async function createInitialGameState(
+  playerId: string = "player1",
+  languageCode: string = "en"
+): Promise<GameState> {
+  const { loadLanguage } = await import("./languages");
+  const language = await loadLanguage(languageCode as any);
 
-  VOWELS.forEach((vowel) => {
-    const letterData = LETTER_DISTRIBUTION[vowel];
-    // Add each vowel multiple times based on its distribution count
-    for (let i = 0; i < letterData.count; i++) {
-      vowelOptions.push(vowel);
-    }
-  });
-
-  const randomIndex = Math.floor(Math.random() * vowelOptions.length);
-  const selectedLetter = vowelOptions[randomIndex];
-
-  return {
-    id: `${selectedLetter}-${nextLetterId++}`,
-    value: selectedLetter,
-  };
-}
-
-function generateRandomConsonant(): Letter {
-  const consonantOptions: LetterKey[] = [];
-
-  Object.entries(LETTER_DISTRIBUTION).forEach(([letter, { count }]) => {
-    if (!VOWELS.includes(letter as any)) {
-      // Add each consonant multiple times based on its distribution count
-      for (let i = 0; i < count; i++) {
-        consonantOptions.push(letter as LetterKey);
-      }
-    }
-  });
-
-  const randomIndex = Math.floor(Math.random() * consonantOptions.length);
-  const selectedLetter = consonantOptions[randomIndex];
-
-  return {
-    id: `${selectedLetter}-${nextLetterId++}`,
-    value: selectedLetter,
-  };
-}
-
-export function createInitialGameState(
-  playerId: string = "player1"
-): GameState {
   const initialTray = new Array(TRAY_SIZE).fill(null);
-  fillTray(initialTray);
+  fillTray(initialTray, language);
 
   return {
     board: {},
@@ -124,5 +81,6 @@ export function createInitialGameState(
         temporaryPlacements: {},
       },
     },
+    language: languageCode,
   };
 }

@@ -2,7 +2,7 @@ import React from "react";
 import type { Letter } from "../types";
 import { getLetterPoints } from "../utils";
 
-interface LetterProps {
+interface LetterViewProps {
   letter?: Letter | null;
   onClick?: () => void;
   disabled?: boolean;
@@ -13,7 +13,7 @@ interface LetterProps {
   cellSize?: number; // For responsive board letters
 }
 
-export const LetterView: React.FC<LetterProps> = ({
+export const LetterView: React.FC<LetterViewProps> = ({
   letter,
   onClick,
   disabled = false,
