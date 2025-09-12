@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import type { PlacedLetter } from "../types";
-import { Letter } from "./Letter";
+import type { Letter as LetterType, BoardGrid, LetterGrid } from "../types";
+import { LetterView } from "./Letter";
 import { BOARD_WIDTH, BOARD_HEIGHT } from "../config";
 
 interface GameBoardProps {
-  board: (PlacedLetter | null)[][];
-  temporaryPlacements: PlacedLetter[];
+  board: BoardGrid;
+  temporaryPlacements: LetterGrid;
   selectedCell: { x: number; y: number } | null;
   placementDirection: "horizontal" | "vertical";
   onCellSelect: (x: number, y: number) => void;
@@ -33,14 +33,16 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
     return highlighted;
   };
 
-  const getCellContent = (x: number, y: number) => {
+  const getCellContent = (x: number, y: number): { letter: LetterType | null; isTemporary: boolean } => {
     // Check for permanent letter first
-    const permanentLetter = board[y][x];
-    if (permanentLetter) return permanentLetter;
+    const permanentLetter = board[x]?.[y];
+    if (permanentLetter) return { letter: permanentLetter, isTemporary: false };
 
     // Check for temporary placement
-    const tempLetter = temporaryPlacements.find((p) => p.x === x && p.y === y);
-    return tempLetter || null;
+    const tempLetter = temporaryPlacements[x]?.[y];
+    if (tempLetter) return { letter: tempLetter, isTemporary: true };
+
+    return { letter: null, isTemporary: false };
   };
 
   const highlightedCells = getHighlightedCells();
@@ -48,12 +50,23 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
   const [cellSize, setCellSize] = useState(32);
 
   const calculateCellSize = () => {
-    // Calculate responsive cell size based on screen width
-    // Aim for the grid to fit within viewport with some padding
-    const screenWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
-    const availableWidth = Math.min(screenWidth - 32, 640); // 32px padding, max 640px
-    const cellSize = Math.floor(availableWidth / BOARD_WIDTH) - 4; // 4px for gap
-    return Math.max(cellSize, 16); // Minimum 16px cell size
+    // Calculate responsive cell size based on both screen width and height
+
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    // Account for tray height (approximately 120px) and padding
+    const availableHeight = screenHeight - 160; // Tray + padding
+    const availableWidth = screenWidth - 32; // Side padding
+
+    // Calculate max cell size based on both dimensions
+    const cellSizeByWidth = Math.floor(availableWidth / BOARD_WIDTH) - 4;
+    const cellSizeByHeight = Math.floor(availableHeight / BOARD_HEIGHT) - 4;
+
+    // Use the smaller of the two to ensure it fits
+    const cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+
+    return Math.max(cellSize, 12); // Minimum 12px cell size
   };
 
   useEffect(() => {
@@ -84,10 +97,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({ board, temporaryPlacements
             const cellKey = `${x}-${y}`;
             const isSelected = selectedCell?.x === x && selectedCell?.y === y;
             const isHighlighted = highlightedCells.has(cellKey);
-            const letter = getCellContent(x, y);
-            const isTemporary = letter?.isTemporary;
+            const cellContent = getCellContent(x, y);
 
-            return <Letter key={cellKey} letter={letter} onClick={() => onCellSelect(x, y)} isSelected={isSelected} isHighlighted={isHighlighted} isTemporary={isTemporary} variant="board" cellSize={cellSize} />;
+            return <LetterView key={cellKey} letter={cellContent.letter} onClick={() => onCellSelect(x, y)} isSelected={isSelected} isHighlighted={isHighlighted} isTemporary={cellContent.isTemporary} variant="board" cellSize={cellSize} />;
           })
         )}
       </div>

@@ -1,86 +1,128 @@
 import type { Letter, GameState } from "./types";
-import { LETTER_DISTRIBUTION, VOWELS, CONSONANTS, TRAY_SIZE, TARGET_VOWEL_RATIO, BOARD_WIDTH, BOARD_HEIGHT } from "./config";
+import {
+  LETTER_DISTRIBUTION,
+  VOWELS,
+  TRAY_SIZE,
+  TARGET_VOWEL_RATIO,
+  type LetterKey,
+} from "./config";
 
-export function createLetterBag(): Letter[] {
-  const letters: Letter[] = [];
-  let id = 0;
+let nextLetterId = 0;
 
-  Object.entries(LETTER_DISTRIBUTION).forEach(([letter, { count, points }]) => {
+export function generateRandomLetter(): Letter {
+  // Get all available letters with their relative weights (counts)
+  const letterOptions: LetterKey[] = [];
+
+  Object.entries(LETTER_DISTRIBUTION).forEach(([letter, { count }]) => {
+    // Add each letter multiple times based on its distribution count
     for (let i = 0; i < count; i++) {
-      letters.push({
-        id: `${letter}-${id++}`,
-        letter,
-        points,
-      });
+      letterOptions.push(letter as LetterKey);
     }
   });
 
-  return shuffleArray(letters);
-}
+  // Pick a random letter from the weighted distribution
+  const randomIndex = Math.floor(Math.random() * letterOptions.length);
+  const selectedLetter = letterOptions[randomIndex];
 
-export function drawLetters(availableLetters: Letter[], count: number, currentTray: Letter[] = []): { drawn: Letter[]; remaining: Letter[] } {
+  return {
+    id: `${selectedLetter}-${nextLetterId++}`,
+    value: selectedLetter,
+  };
+}
+export function fillTray(currentTray: (Letter | null)[]): void {
   // Balance vowels and consonants
-  const vowelsInTray = currentTray.filter((l) => VOWELS.includes(l.letter)).length;
-  const consonantsInTray = currentTray.filter((l) => !VOWELS.includes(l.letter)).length;
-  const totalInTray = currentTray.length;
+  let vowelsInTray = currentTray.filter(
+    (l) => l !== null && VOWELS.includes(l.value as any)
+  ).length;
+  let totalInTray = currentTray.filter((l) => l !== null).length;
 
   const targetVowelRatio = TARGET_VOWEL_RATIO; // Aim for configured vowel ratio
-  const currentVowelRatio = totalInTray > 0 ? vowelsInTray / totalInTray : 0;
 
-  const drawn: Letter[] = [];
-  const remaining = [...availableLetters];
+  for (let i = 0; i < currentTray.length; i++) {
+    // If there's already a letter at this position, skip it
+    if (currentTray[i] !== null) {
+      continue;
+    }
 
-  for (let i = 0; i < count && remaining.length > 0; i++) {
-    const currentTotal = totalInTray + drawn.length;
-    const currentVowels = vowelsInTray + drawn.filter((l) => VOWELS.includes(l.letter)).length;
+    const currentTotal = totalInTray;
+    const currentVowels = vowelsInTray;
     const currentRatio = currentTotal > 0 ? currentVowels / currentTotal : 0;
 
     let preferVowels = currentRatio < targetVowelRatio;
 
-    // Find suitable letters
-    const vowelOptions = remaining.filter((l) => VOWELS.includes(l.letter));
-    const consonantOptions = remaining.filter((l) => !VOWELS.includes(l.letter));
-
     let selectedLetter: Letter;
 
-    if (preferVowels && vowelOptions.length > 0) {
-      selectedLetter = vowelOptions[Math.floor(Math.random() * vowelOptions.length)];
-    } else if (!preferVowels && consonantOptions.length > 0) {
-      selectedLetter = consonantOptions[Math.floor(Math.random() * consonantOptions.length)];
+    if (preferVowels) {
+      // Generate a vowel
+      selectedLetter = generateRandomVowel();
+      vowelsInTray++;
     } else {
-      // Fallback to any available letter
-      selectedLetter = remaining[Math.floor(Math.random() * remaining.length)];
+      // Generate a consonant
+      selectedLetter = generateRandomConsonant();
     }
 
-    drawn.push(selectedLetter);
-    const index = remaining.findIndex((l) => l.id === selectedLetter.id);
-    remaining.splice(index, 1);
+    // Insert the new letter into the tray
+    currentTray[i] = selectedLetter;
+    totalInTray++;
   }
-
-  return { drawn, remaining };
 }
 
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
+function generateRandomVowel(): Letter {
+  const vowelOptions: LetterKey[] = [];
 
-export function createInitialGameState(): GameState {
-  const availableLetters = createLetterBag();
-  const { drawn: initialTray, remaining } = drawLetters(availableLetters, TRAY_SIZE);
+  VOWELS.forEach((vowel) => {
+    const letterData = LETTER_DISTRIBUTION[vowel];
+    // Add each vowel multiple times based on its distribution count
+    for (let i = 0; i < letterData.count; i++) {
+      vowelOptions.push(vowel);
+    }
+  });
+
+  const randomIndex = Math.floor(Math.random() * vowelOptions.length);
+  const selectedLetter = vowelOptions[randomIndex];
 
   return {
-    board: Array(BOARD_HEIGHT)
-      .fill(null)
-      .map(() => Array(BOARD_WIDTH).fill(null)),
-    tray: initialTray,
-    selectedCell: null,
-    placementDirection: "horizontal",
-    temporaryPlacements: [],
-    availableLetters: remaining,
+    id: `${selectedLetter}-${nextLetterId++}`,
+    value: selectedLetter,
+  };
+}
+
+function generateRandomConsonant(): Letter {
+  const consonantOptions: LetterKey[] = [];
+
+  Object.entries(LETTER_DISTRIBUTION).forEach(([letter, { count }]) => {
+    if (!VOWELS.includes(letter as any)) {
+      // Add each consonant multiple times based on its distribution count
+      for (let i = 0; i < count; i++) {
+        consonantOptions.push(letter as LetterKey);
+      }
+    }
+  });
+
+  const randomIndex = Math.floor(Math.random() * consonantOptions.length);
+  const selectedLetter = consonantOptions[randomIndex];
+
+  return {
+    id: `${selectedLetter}-${nextLetterId++}`,
+    value: selectedLetter,
+  };
+}
+
+export function createInitialGameState(
+  playerId: string = "player1"
+): GameState {
+  const initialTray = new Array(TRAY_SIZE).fill(null);
+  fillTray(initialTray);
+
+  return {
+    board: {},
+    players: {
+      [playerId]: {
+        tray: initialTray,
+        selectedCell: null,
+        placementDirection: "horizontal",
+        temporaryPlacements: {},
+      },
+    },
   };
 }

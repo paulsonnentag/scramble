@@ -45,4 +45,8 @@ alwaysApply: true
 
 ## Automerge
 
-- Store all state in automerge documents unless asked otherwise
+CRITICAL: Never assign objects read from Automerge documents back to the document directly
+This creates circular references and throws "Cannot create a reference to an existing document object"
+Always use structuredClone() when reassigning objects from the document:
+❌ BAD: doc.tray[i] = someObjectFromDoc;
+✅ GOOD: doc.tray[i] = structuredClone(someObjectFromDoc);
