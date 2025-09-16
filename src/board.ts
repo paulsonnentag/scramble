@@ -31,32 +31,43 @@ export const computeBoardFromWords = (words: Word[]): Board => {
   return board;
 };
 
+export const isValidOrientation = (
+  board: Board,
+  position: Position,
+  orientation: Orientation
+): boolean => {
+  const { x, y } = position;
+
+  if (orientation === "horizontal") {
+    // Check horizontal direction: iterate for TRAY_SIZE fields in horizontal direction
+    for (let i = -1; i < TRAY_SIZE; i++) {
+      const checkX = x + i;
+      if (board[checkX]?.[y]) {
+        return true;
+      }
+    }
+  } else {
+    // Check vertical direction: iterate for TRAY_SIZE fields in vertical direction
+    for (let i = -1; i < TRAY_SIZE; i++) {
+      const checkY = y + i;
+      if (board[x]?.[checkY]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 export const getSuggestedOrientation = (
   board: Board,
   position: Position
-): Orientation | null => {
-  const { x, y } = position;
-
-  // Check horizontal direction: iterate for TRAY_SIZE fields in horizontal direction
-  for (let i = -1; i < TRAY_SIZE; i++) {
-    const checkX = x + i;
-    if (board[checkX]?.[y]) {
-      return "horizontal";
-    }
-  }
-
-  // Check vertical direction: iterate for TRAY_SIZE fields in vertical direction
-  for (let i = -1; i < TRAY_SIZE; i++) {
-    const checkY = y + i;
-
-    if (board[x]?.[checkY]) {
-      return "vertical";
-    }
-  }
-
-  // If no overlap or overlap in both directions, return null
-  return null;
-};
+): Orientation | null =>
+  isValidOrientation(board, position, "vertical")
+    ? "vertical"
+    : isValidOrientation(board, position, "horizontal")
+    ? "horizontal"
+    : null;
 
 export const getNextAvailablePosition = (
   word: Word,

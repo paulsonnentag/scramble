@@ -6,6 +6,7 @@ import {
   findEmptyTraySlot,
   getNextAvailablePosition,
   getSuggestedOrientation,
+  isValidOrientation,
   moveWordLettersToTray,
 } from "../board";
 import { TRAY_SIZE } from "../config";
@@ -80,12 +81,13 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
 
           // Check if the new orientation would be valid at this position
           const currentBoard = computeBoardFromWords(doc.placedWords);
-          const validOrientation = getSuggestedOrientation(currentBoard, {
-            x,
-            y,
-          });
+          const isNewOrientationValid = isValidOrientation(
+            currentBoard,
+            { x, y },
+            newOrientation
+          );
 
-          if (validOrientation === newOrientation) {
+          if (isNewOrientationValid) {
             player.word = {
               start,
               letters: [],
