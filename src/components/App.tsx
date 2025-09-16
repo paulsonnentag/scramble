@@ -1,10 +1,11 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { TRAY_SIZE } from "../config";
 import { loadLanguage } from "../languages";
 import { Language } from "../languages/Language";
-import type { GameState } from "../types";
+import type { GameState, Word } from "../types";
+import { computeBoardFromWords, getSuggestedOrientation } from "../board";
 import { GameBoard } from "./GameBoard";
 import { LetterTray } from "./LetterTray";
 
@@ -28,41 +29,42 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
     }
   }, [doc?.language, language]);
 
-  const hasTemporaryPlacements = !!player.temporaryPlacement;
+  const hasCurrentWord = !!player.word;
 
-  // Check if a cell is empty (has no letter)
-  const isCellEmpty = useCallback(
-    (x: number, y: number): boolean => {
-      return !doc.board[x]?.[y];
-    },
-    [doc.board]
+  // Concatenate placed words with current word if it exists
+  const allWords = useMemo(
+    () => (player.word ? [player.word, ...doc.placedWords] : doc.placedWords),
+    [doc.placedWords, player.word]
   );
+
+  // Compute the current board state
+  const board = useMemo(() => computeBoardFromWords(allWords), [allWords]);
 
   // Handle cell selection for letter placement
   const handleCellSelect = useCallback(
     (x: number, y: number) => {
       // Only allow selection of empty cells
-      if (!isCellEmpty(x, y)) {
+      if (board[x]?.[y]) {
         return;
       }
 
       changeDoc((doc) => {
         const start = { x, y };
         const player = doc.players[playerId];
-        const temporaryPlacement = player.temporaryPlacement;
+        const currentWord = player.word;
 
         // If clicking the same position, toggle orientation
         if (
-          temporaryPlacement &&
-          temporaryPlacement.start.x === x &&
-          temporaryPlacement.start.y === y &&
-          temporaryPlacement.letters.length === 0
+          currentWord &&
+          currentWord.start.x === x &&
+          currentWord.start.y === y &&
+          currentWord.letters.length === 0
         ) {
           const newOrientation =
-            temporaryPlacement.orientation === "horizontal"
+            currentWord.orientation === "horizontal"
               ? "vertical"
               : "horizontal";
-          player.temporaryPlacement = {
+          player.word = {
             start,
             letters: [],
             orientation: newOrientation,
@@ -70,18 +72,17 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
           return;
         }
 
-        // Set new temporary placement for highlighting (empty letters array)
-        player.temporaryPlacement = {
+        // Set new word for highlighting (empty letters array)
+        const suggestedOrientation = getSuggestedOrientation(board, { x, y });
+        player.word = {
           start,
           letters: [],
-          orientation: "horizontal",
+          orientation: suggestedOrientation,
         };
       });
     },
-    [changeDoc, player.temporaryPlacement, isCellEmpty]
+    [changeDoc, player.word, board]
   );
-
-  // No need for separate highlighting - temporaryPlacement handles this directly
 
   if (!language) return <div>Loading language...</div>;
 
@@ -91,8 +92,8 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
 
       <div style={BORD_SIZE}>
         <GameBoard
-          board={doc.board}
-          temporaryPlacement={player.temporaryPlacement}
+          board={board}
+          currentWord={player.word}
           onCellSelect={handleCellSelect}
         />
       </div>
@@ -101,9 +102,9 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
 
       <LetterTray
         letters={player.letters}
-        canAccept={hasTemporaryPlacements}
-        canReject={hasTemporaryPlacements}
-        canBackspace={hasTemporaryPlacements}
+        canAccept={hasCurrentWord}
+        canReject={hasCurrentWord}
+        canBackspace={hasCurrentWord}
         onAccept={() => {}}
         onReject={() => {}}
         onBackspace={() => {}}

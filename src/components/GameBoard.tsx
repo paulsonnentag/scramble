@@ -1,12 +1,12 @@
 import React, { useMemo } from "react";
-import type { Board, TemporaryPlacement } from "../types";
-import { mergeBoardWithTemporaryPlacements } from "../utils";
+import type { Word } from "../types";
+import { computeBoardFromWords, type Board } from "../board";
 import { LetterView } from "./Letter";
 import { BOARD_HEIGHT, BOARD_WIDTH, TRAY_SIZE } from "../config";
 
 type GameBoardProps = {
   board: Board;
-  temporaryPlacement?: TemporaryPlacement;
+  currentWord?: Word;
   onCellSelect: (x: number, y: number) => void;
 };
 
@@ -20,26 +20,18 @@ const GRID_STYLE = {
 
 export const GameBoard: React.FC<GameBoardProps> = ({
   board,
-  temporaryPlacement,
+  currentWord,
   onCellSelect,
 }) => {
-  const mergedBoard = useMemo(
-    () =>
-      temporaryPlacement
-        ? mergeBoardWithTemporaryPlacements(board, temporaryPlacement)
-        : board,
-    [board, temporaryPlacement]
-  );
-
   // Compute highlighted cells map
   const highlightedCells = useMemo(() => {
     const highlighted = new Map<string, boolean>();
 
-    if (!temporaryPlacement || temporaryPlacement.letters.length > 0) {
+    if (!currentWord) {
       return highlighted;
     }
 
-    const { start, orientation } = temporaryPlacement;
+    const { start, orientation } = currentWord;
     let highlightLength = TRAY_SIZE;
 
     for (let i = 0; i < highlightLength; i++) {
@@ -68,11 +60,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     }
 
     return highlighted;
-  }, [temporaryPlacement, board]);
+  }, [currentWord, board]);
 
   return (
     <div className="bg-gray-200" style={GRID_STYLE}>
-      {Object.values(mergedBoard).map((col, x) =>
+      {Object.values(board).map((col, x) =>
         Object.values(col).map((cell, y) => {
           const cellKey = `${x}/${y}`;
           const isHighlighted = highlightedCells.get(cellKey);

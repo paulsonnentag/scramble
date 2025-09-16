@@ -1,39 +1,7 @@
 import { Language } from "./languages/Language";
-import type { Board, TemporaryPlacement } from "./types";
 
 export const toJS = <T>(value: T): T => {
   return JSON.parse(JSON.stringify(value));
-};
-
-export const mergeBoardWithTemporaryPlacements = (
-  board: Board,
-  temporaryPlacement: TemporaryPlacement | null
-): Board => {
-  // Start with a copy of the existing board
-  const mergedBoard: Board = {};
-
-  // Copy all existing board letters
-  Object.keys(board).forEach((xStr) => {
-    const x = parseInt(xStr);
-    mergedBoard[x] = { ...board[x] };
-  });
-
-  // Add temporary placements if they exist
-  if (temporaryPlacement && temporaryPlacement.letters.length > 0) {
-    const { start: startPosition, orientation, letters } = temporaryPlacement;
-    const { x: startX, y: startY } = startPosition;
-
-    letters.forEach((letter, index) => {
-      if (letter !== null) {
-        const x = orientation === "horizontal" ? startX + index : startX;
-        const y = orientation === "vertical" ? startY + index : startY;
-
-        mergedBoard[x][y] = letter;
-      }
-    });
-  }
-
-  return mergedBoard;
 };
 
 export const getLetterPoints = (

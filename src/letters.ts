@@ -1,4 +1,4 @@
-import type { Letter, GameState, Board } from "./types";
+import type { Letter, GameState, Word } from "./types";
 import {
   TRAY_SIZE,
   TARGET_VOWEL_RATIO,
@@ -76,34 +76,24 @@ export async function createInitialGameState(
   const tray = new Array(TRAY_SIZE).fill(null);
   fillTray(tray, language);
 
-  // create empty board
-  const board: Board = {};
-  for (let x = 0; x < BOARD_WIDTH; x++) {
-    board[x] = {};
-    for (let y = 0; y < BOARD_HEIGHT; y++) {
-      board[x][y] = null;
-    }
-  }
-
-  // Initialize board with "SCRAMBLE" in the middle
-  const word = "SCRAMBLE";
-  const startX = Math.floor((BOARD_WIDTH - word.length) / 2);
+  // Initialize with "SCRAMBLE" word in the middle
+  const wordText = "SCRAMBLE";
+  const startX = Math.floor((BOARD_WIDTH - wordText.length) / 2);
   const middleY = Math.floor(BOARD_HEIGHT / 2);
 
-  word.split("").forEach((letter, index) => {
-    const x = startX + index;
-    console.log(x, middleY);
-
-    board[x][middleY] = {
+  const scrambleWord: Word = {
+    start: { x: startX, y: middleY },
+    orientation: "horizontal",
+    letters: wordText.split("").map((letter) => ({
       id: crypto.randomUUID(),
       value: letter,
-    };
-  });
+    })),
+  };
 
-  console.log("init", board);
+  console.log("init", scrambleWord);
 
   return {
-    board,
+    placedWords: [scrambleWord],
     players: {
       [playerId]: {
         letters: tray,

@@ -7,9 +7,7 @@ export type Letter = {
 
 export type Orientation = "horizontal" | "vertical";
 
-export type Board = { [x: number]: { [y: number]: Letter | null } };
-
-export type TemporaryPlacement = {
+export type Word = {
   start: Position;
   letters: (Letter | null)[];
   orientation: Orientation;
@@ -17,11 +15,11 @@ export type TemporaryPlacement = {
 
 export type PlayerState = {
   letters: (Letter | null)[];
-  temporaryPlacement?: TemporaryPlacement;
+  word?: Word;
 };
 
 export interface GameState {
-  board: Board;
+  placedWords: Word[];
   players: { [playerId: string]: PlayerState };
   language: string; // Language code (e.g., "en", "de")
 }
