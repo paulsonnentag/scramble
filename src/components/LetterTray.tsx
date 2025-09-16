@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { CheckIcon, DeleteIcon, XIcon } from "lucide-react";
+import React from "react";
+import { TRAY_SIZE } from "../config";
 import type { Letter } from "../types";
-import { LetterView } from "./Letter";
-import { BOARD_HEIGHT, BOARD_WIDTH, TRAY_SIZE } from "../config";
-import { CheckIcon, XIcon, DeleteIcon } from "lucide-react";
 import { Button } from "./Button";
+import { LetterView } from "./Letter";
 
 interface LetterTrayProps {
   letters: (Letter | null)[];
