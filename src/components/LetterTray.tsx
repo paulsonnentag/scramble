@@ -7,7 +7,7 @@ import { LetterView } from "./Letter";
 
 interface LetterTrayProps {
   letters: (Letter | null)[];
-  onLetterClick: (letter: Letter) => void;
+  onLetterClick: (index: number) => void;
   canAccept: boolean;
   canReject: boolean;
   canBackspace: boolean;
@@ -48,9 +48,9 @@ export const LetterTray: React.FC<LetterTrayProps> = ({
   return (
     <div style={GRID_STYLE}>
       {letters.map((letter, index) => (
-        <div key={letter?.id} style={{ gridColumn: index + 1 }}>
+        <div key={index} style={{ gridColumn: index + 1 }}>
           {letter && (
-            <LetterView letter={letter} onClick={() => onLetterClick(letter)} />
+            <LetterView letter={letter} onClick={() => onLetterClick(index)} />
           )}
         </div>
       ))}

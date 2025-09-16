@@ -4,10 +4,17 @@ import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { TRAY_SIZE } from "../config";
 import { loadLanguage } from "../languages";
 import { Language } from "../languages/Language";
-import type { GameState, Word } from "../types";
-import { computeBoardFromWords, getSuggestedOrientation } from "../board";
+import type { GameState } from "../types";
+import {
+  computeBoardFromWords,
+  getSuggestedOrientation,
+  getNextAvailablePosition,
+  findEmptyTraySlot,
+} from "../board";
+import { fillTray } from "../letters";
 import { GameBoard } from "./GameBoard";
 import { LetterTray } from "./LetterTray";
+import { toJS } from "../utils";
 
 const BORD_SIZE = {
   margin: "auto",
@@ -84,6 +91,185 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
     [changeDoc, player.word, board]
   );
 
+  // Handle letter placement
+  const placeLetter = useCallback(
+    (trayIndex: number) => {
+      if (!player.word) return;
+
+      const letter = player.letters[trayIndex];
+      if (!letter) return;
+
+      const nextPosition = getNextAvailablePosition(player.word, board);
+      if (!nextPosition) return;
+
+      changeDoc((doc) => {
+        const currentPlayer = doc.players[playerId];
+        const currentWord = currentPlayer.word;
+        if (!currentWord) return;
+
+        // Calculate the index in the word letters array
+        const { start, orientation } = currentWord;
+        let wordIndex: number;
+
+        if (orientation === "horizontal") {
+          wordIndex = nextPosition.x - start.x;
+        } else {
+          wordIndex = nextPosition.y - start.y;
+        }
+
+        // Extend letters array if needed
+        while (currentWord.letters.length <= wordIndex) {
+          currentWord.letters.push(null);
+        }
+
+        // Place the letter
+        currentWord.letters[wordIndex] = structuredClone(letter);
+
+        // Remove letter from tray
+        currentPlayer.letters[trayIndex] = null;
+      });
+    },
+    [changeDoc, playerId, player.word, board]
+  );
+
+  // Handle letter removal (backspace)
+  const handleBackspace = useCallback(() => {
+    if (!player.word) return;
+
+    changeDoc((doc) => {
+      const currentPlayer = doc.players[playerId];
+      const currentWord = currentPlayer.word;
+      if (!currentWord || currentWord.letters.length === 0) return;
+
+      // Find the last placed letter
+      let lastIndex = -1;
+      for (let i = currentWord.letters.length - 1; i >= 0; i--) {
+        if (currentWord.letters[i] !== null) {
+          lastIndex = i;
+          break;
+        }
+      }
+
+      if (lastIndex === -1) return;
+
+      // Get the letter to return to tray
+      const letterToReturn = currentWord.letters[lastIndex];
+      if (!letterToReturn) return;
+
+      // Find empty spot in tray
+      const emptyTraySlot = findEmptyTraySlot(currentPlayer.letters);
+      if (emptyTraySlot !== -1) {
+        currentPlayer.letters[emptyTraySlot] = toJS(letterToReturn);
+      }
+
+      // Remove letter from word
+      currentWord.letters[lastIndex] = null;
+
+      // Trim trailing nulls
+      while (
+        currentWord.letters.length > 0 &&
+        currentWord.letters[currentWord.letters.length - 1] === null
+      ) {
+        currentWord.letters.pop();
+      }
+    });
+  }, [changeDoc, playerId, player.word]);
+
+  // Handle letter placement via keyboard
+  const handleKeyPress = useCallback(
+    (event: KeyboardEvent) => {
+      if (!player.word) return;
+
+      const key = event.key.toUpperCase();
+
+      // Handle backspace
+      if (key === "BACKSPACE") {
+        event.preventDefault();
+        handleBackspace();
+        return;
+      }
+
+      // Handle letter placement
+      if (key.length === 1 && key >= "A" && key <= "Z") {
+        event.preventDefault();
+
+        // Find the letter in the tray
+        const trayIndex = player.letters.findIndex(
+          (letter) => letter?.value.toUpperCase() === key
+        );
+        if (trayIndex === -1) return;
+
+        placeLetter(trayIndex);
+      }
+    },
+    [player.word, player.letters, handleBackspace, placeLetter]
+  );
+
+  // Handle word acceptance
+  const handleAccept = useCallback(() => {
+    if (!player.word || player.word.letters.length === 0) return;
+
+    // Check if word has any letters
+    const hasLetters = player.word.letters.some((letter) => letter !== null);
+    if (!hasLetters) return;
+
+    changeDoc((doc) => {
+      const currentPlayer = doc.players[playerId];
+      const currentWord = currentPlayer.word;
+      if (!currentWord) return;
+
+      // Add word to placed words
+      doc.placedWords.push(toJS(currentWord));
+
+      // Clear current word
+      delete currentPlayer.word;
+
+      // Refill tray
+      if (language) {
+        fillTray(currentPlayer.letters, language);
+      }
+    });
+  }, [changeDoc, playerId, player.word, language]);
+
+  // Handle word rejection
+  const handleReject = useCallback(() => {
+    if (!player.word) return;
+
+    changeDoc((doc) => {
+      const currentPlayer = doc.players[playerId];
+      const currentWord = currentPlayer.word;
+      if (!currentWord) return;
+
+      // Return all letters to tray
+      currentWord.letters.forEach((letter) => {
+        if (letter) {
+          const emptySlot = findEmptyTraySlot(currentPlayer.letters);
+          if (emptySlot !== -1) {
+            currentPlayer.letters[emptySlot] = structuredClone(letter);
+          }
+        }
+      });
+
+      // Clear current word
+      currentPlayer.word = undefined;
+    });
+  }, [changeDoc, playerId, player.word]);
+
+  // Handle letter tray clicks
+  const handleLetterClick = useCallback(
+    (index: number) => {
+      if (!player.word) return;
+      placeLetter(index);
+    },
+    [player.word, placeLetter]
+  );
+
+  // Set up keyboard event listeners
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [handleKeyPress]);
+
   if (!language) return <div>Loading language...</div>;
 
   return (
@@ -105,10 +291,10 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         canAccept={hasCurrentWord}
         canReject={hasCurrentWord}
         canBackspace={hasCurrentWord}
-        onAccept={() => {}}
-        onReject={() => {}}
-        onBackspace={() => {}}
-        onLetterClick={() => {}}
+        onAccept={handleAccept}
+        onReject={handleReject}
+        onBackspace={handleBackspace}
+        onLetterClick={handleLetterClick}
       />
     </div>
   );

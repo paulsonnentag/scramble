@@ -50,3 +50,43 @@ export const getSuggestedOrientation = (
   // If no letter found horizontally, return vertical
   return "vertical";
 };
+
+export const getNextAvailablePosition = (
+  word: Word,
+  board: Board
+): Position | null => {
+  const { start, orientation, letters } = word;
+
+  for (let i = 0; i < TRAY_SIZE; i++) {
+    const x = orientation === "horizontal" ? start.x + i : start.x;
+    const y = orientation === "vertical" ? start.y + i : start.y;
+
+    // Check bounds
+    if (x >= BOARD_WIDTH || y >= BOARD_HEIGHT || x < 0 || y < 0) {
+      return null;
+    }
+
+    // Skip if there's already a letter at this position in the word
+    if (i < letters.length && letters[i] !== null) {
+      continue;
+    }
+
+    // Skip if there's a letter on the board at this position
+    if (board[x]?.[y]) {
+      continue;
+    }
+
+    return { x, y };
+  }
+
+  return null;
+};
+
+export const findEmptyTraySlot = (tray: (Letter | null)[]): number => {
+  for (let i = 0; i < tray.length; i++) {
+    if (tray[i] === null) {
+      return i;
+    }
+  }
+  return -1;
+};

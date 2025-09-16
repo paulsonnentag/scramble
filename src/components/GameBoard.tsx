@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import type { Word } from "../types";
-import { computeBoardFromWords, type Board } from "../board";
+import type { Board } from "../board";
 import { LetterView } from "./Letter";
 import { BOARD_HEIGHT, BOARD_WIDTH, TRAY_SIZE } from "../config";
 
