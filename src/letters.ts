@@ -67,7 +67,6 @@ export function fillTray(
 }
 
 export async function createInitialGameState(
-  playerId: string = "player1",
   languageCode: string = "en"
 ): Promise<GameState> {
   const { loadLanguage } = await import("./languages");
@@ -94,11 +93,7 @@ export async function createInitialGameState(
 
   return {
     placedWords: [scrambleWord],
-    players: {
-      [playerId]: {
-        letters: tray,
-      },
-    },
+    players: {},
     language: languageCode,
   };
 }

@@ -1,12 +1,13 @@
 {
-  "name": "word-grid",
+  "name": "scramble",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "push": "yarn build && surge dist --domain scramble-words.surge.sh"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.13",

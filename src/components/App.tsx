@@ -2,6 +2,7 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  calculateWordScore,
   computeBoardFromWords,
   findEmptyTraySlot,
   getNextAvailablePosition,
@@ -18,6 +19,9 @@ import type { GameState } from "../types";
 import { toJS } from "../utils";
 import { GameBoard } from "./GameBoard";
 import { LetterTray } from "./LetterTray";
+import { Lobby } from "./Lobby";
+import { Scoreboard } from "./Scoreboard";
+import { getPlayerId } from "../player";
 
 const BORD_SIZE = {
   margin: "auto",
@@ -25,10 +29,15 @@ const BORD_SIZE = {
   height: "min(100%, 100vw)",
 };
 
-export const App = ({ url }: { url: AutomergeUrl }) => {
+export const GameView = ({
+  url,
+  playerId,
+}: {
+  url: AutomergeUrl;
+  playerId: string;
+}) => {
   const [doc, changeDoc] = useDocument<GameState>(url, { suspense: true });
   const [language, setLanguage] = useState<Language | null>(null);
-  const playerId = "player1"; // For now, assume single player
 
   const player = doc.players[playerId];
 
@@ -259,24 +268,40 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         alert(`Invalid words: ${validation.invalidWords.join(", ")}`);
         return;
       }
-    }
 
-    changeDoc((doc) => {
-      const currentPlayer = doc.players[playerId];
-      const currentWord = currentPlayer.word;
-      if (!currentWord) return;
+      // Calculate score for the word placement
+      const score = calculateWordScore(currentBoard, player.word, language);
 
-      // Add word to placed words
-      doc.placedWords.push(toJS(currentWord));
+      changeDoc((doc) => {
+        const currentPlayer = doc.players[playerId];
+        const currentWord = currentPlayer.word;
+        if (!currentWord) return;
 
-      // Clear current word
-      delete currentPlayer.word;
+        // Add word to placed words
+        doc.placedWords.push(toJS(currentWord));
 
-      // Refill tray
-      if (language) {
+        // Add score to player
+        currentPlayer.points += score;
+
+        // Clear current word
+        delete currentPlayer.word;
+
+        // Refill tray
         fillTray(currentPlayer.letters, language);
-      }
-    });
+      });
+    } else {
+      changeDoc((doc) => {
+        const currentPlayer = doc.players[playerId];
+        const currentWord = currentPlayer.word;
+        if (!currentWord) return;
+
+        // Add word to placed words without scoring
+        doc.placedWords.push(toJS(currentWord));
+
+        // Clear current word
+        delete currentPlayer.word;
+      });
+    }
   }, [changeDoc, playerId, player.word, language, doc.placedWords]);
 
   // Handle word rejection
@@ -322,28 +347,55 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-300">
-      <div className="flex-1"></div>
-
-      <div style={BORD_SIZE}>
-        <GameBoard
-          board={board}
-          currentWord={player.word}
-          onCellSelect={handleCellSelect}
-        />
+      {/* Scoreboard row */}
+      <div className="mb-4 flex justify-center">
+        <Scoreboard gameState={doc} currentPlayerId={playerId} />
       </div>
 
-      <div className="flex-1"></div>
+      {/* Main game area */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1"></div>
 
-      <LetterTray
-        letters={player.letters}
-        canAccept={hasCurrentWord}
-        canReject={hasCurrentWord}
-        canBackspace={hasCurrentWord}
-        onAccept={handleAccept}
-        onReject={handleReject}
-        onBackspace={handleBackspace}
-        onLetterClick={handleLetterClick}
-      />
+        <div style={BORD_SIZE}>
+          <GameBoard
+            board={board}
+            currentWord={player.word}
+            onCellSelect={handleCellSelect}
+          />
+        </div>
+
+        <div className="flex-1"></div>
+
+        <LetterTray
+          letters={player.letters}
+          canAccept={hasCurrentWord}
+          canReject={hasCurrentWord}
+          canBackspace={hasCurrentWord}
+          onAccept={handleAccept}
+          onReject={handleReject}
+          onBackspace={handleBackspace}
+          onLetterClick={handleLetterClick}
+        />
+      </div>
     </div>
   );
+};
+
+// Main App component that manages game states
+export const App = ({ url }: { url: AutomergeUrl }) => {
+  const [doc] = useDocument<GameState>(url, { suspense: true });
+
+  const playerId = getPlayerId();
+
+  // Check if all players are ready to determine if we should show the game
+  const allPlayersReady = doc?.players
+    ? Object.values(doc.players).length > 0 &&
+      Object.values(doc.players).every((player) => player.isReady)
+    : false;
+
+  if (!allPlayersReady) {
+    return <Lobby docUrl={url} playerId={playerId} />;
+  }
+
+  return <GameView url={url} playerId={playerId} />;
 };

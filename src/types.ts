@@ -14,12 +14,15 @@ export type Word = {
 };
 
 export type PlayerState = {
+  name: string;
+  points: number;
   letters: (Letter | null)[];
   word?: Word;
+  isReady: boolean;
 };
 
-export interface GameState {
+export type GameState = {
   placedWords: Word[];
   players: { [playerId: string]: PlayerState };
   language: string; // Language code (e.g., "en", "de")
-}
+};

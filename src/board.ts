@@ -249,3 +249,26 @@ export const validateWordPlacement = (
     invalidWords,
   };
 };
+
+export const calculateWordScore = (
+  board: Board,
+  placedWord: Word,
+  language: Language
+): number => {
+  const newWords = getNewWordsCreated(board, placedWord);
+  let totalScore = 0;
+
+  // Score all new words created
+  newWords.forEach((word) => {
+    let wordScore = 0;
+
+    // Sum up letter points for each letter in the word
+    for (const char of word) {
+      wordScore += language.getLetterPoints(char);
+    }
+
+    totalScore += wordScore;
+  });
+
+  return totalScore;
+};

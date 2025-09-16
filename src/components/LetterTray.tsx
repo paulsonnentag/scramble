@@ -38,9 +38,6 @@ const ACCEPT_BUTTON_STYLE = {
 export const LetterTray: React.FC<LetterTrayProps> = ({
   letters,
   onLetterClick,
-  canAccept,
-  canReject,
-  canBackspace,
   onAccept,
   onReject,
   onBackspace,

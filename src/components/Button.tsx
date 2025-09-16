@@ -1,5 +1,4 @@
 import React from "react";
-import type { Letter } from "../types";
 
 interface IconButtonProps {
   variant?: "neutral" | "negative" | "positive";
