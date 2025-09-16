@@ -1,20 +1,21 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  computeBoardFromWords,
+  findEmptyTraySlot,
+  getNextAvailablePosition,
+  getSuggestedOrientation,
+  moveWordLettersToTray,
+} from "../board";
 import { TRAY_SIZE } from "../config";
 import { loadLanguage } from "../languages";
 import { Language } from "../languages/Language";
-import type { GameState } from "../types";
-import {
-  computeBoardFromWords,
-  getSuggestedOrientation,
-  getNextAvailablePosition,
-  findEmptyTraySlot,
-} from "../board";
 import { fillTray } from "../letters";
+import type { GameState } from "../types";
+import { toJS } from "../utils";
 import { GameBoard } from "./GameBoard";
 import { LetterTray } from "./LetterTray";
-import { toJS } from "../utils";
 
 const BORD_SIZE = {
   margin: "auto",
@@ -60,27 +61,54 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         const player = doc.players[playerId];
         const currentWord = player.word;
 
-        // If clicking the same position, toggle orientation
+        // Check if there are already letters placed in the current word
+        const hasPlacedLetters =
+          currentWord && currentWord.letters.some((letter) => letter !== null);
+
+        // If clicking the same position, toggle orientation (only if no letters are placed)
         if (
           currentWord &&
           currentWord.start.x === x &&
           currentWord.start.y === y &&
-          currentWord.letters.length === 0
+          !hasPlacedLetters
         ) {
+          // Try to toggle orientation, but only if the new orientation is valid
           const newOrientation =
             currentWord.orientation === "horizontal"
               ? "vertical"
               : "horizontal";
-          player.word = {
-            start,
-            letters: [],
-            orientation: newOrientation,
-          };
+
+          // Check if the new orientation would be valid at this position
+          const currentBoard = computeBoardFromWords(doc.placedWords);
+          const validOrientation = getSuggestedOrientation(currentBoard, {
+            x,
+            y,
+          });
+
+          if (validOrientation === newOrientation) {
+            player.word = {
+              start,
+              letters: [],
+              orientation: newOrientation,
+            };
+          }
           return;
         }
 
-        // Set new word for highlighting (empty letters array)
+        // Get suggested orientation for the new position
         const suggestedOrientation = getSuggestedOrientation(board, { x, y });
+
+        // If no valid orientation, don't allow word creation
+        if (!suggestedOrientation) {
+          return;
+        }
+
+        // If there are letters in current word, try to move the word position
+        if (hasPlacedLetters) {
+          moveWordLettersToTray(toJS(currentWord), player.letters);
+        }
+
+        // Set new word for highlighting (empty letters array)
         player.word = {
           start,
           letters: [],
@@ -88,7 +116,7 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         };
       });
     },
-    [changeDoc, player.word, board]
+    [changeDoc, player.word, board, playerId]
   );
 
   // Handle letter placement
@@ -123,7 +151,7 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         }
 
         // Place the letter
-        currentWord.letters[wordIndex] = structuredClone(letter);
+        currentWord.letters[wordIndex] = toJS(letter);
 
         // Remove letter from tray
         currentPlayer.letters[trayIndex] = null;
@@ -245,13 +273,13 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         if (letter) {
           const emptySlot = findEmptyTraySlot(currentPlayer.letters);
           if (emptySlot !== -1) {
-            currentPlayer.letters[emptySlot] = structuredClone(letter);
+            currentPlayer.letters[emptySlot] = toJS(letter);
           }
         }
       });
 
       // Clear current word
-      currentPlayer.word = undefined;
+      delete currentPlayer.word;
     });
   }, [changeDoc, playerId, player.word]);
 

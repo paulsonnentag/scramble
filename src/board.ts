@@ -34,21 +34,28 @@ export const computeBoardFromWords = (words: Word[]): Board => {
 export const getSuggestedOrientation = (
   board: Board,
   position: Position
-): Orientation => {
+): Orientation | null => {
   const { x, y } = position;
 
-  // First try horizontal: iterate for TRAY_SIZE fields in horizontal direction
+  // Check horizontal direction: iterate for TRAY_SIZE fields in horizontal direction
   for (let i = -1; i < TRAY_SIZE; i++) {
     const checkX = x + i;
-    if (checkX >= BOARD_WIDTH) break;
-
     if (board[checkX]?.[y]) {
       return "horizontal";
     }
   }
 
-  // If no letter found horizontally, return vertical
-  return "vertical";
+  // Check vertical direction: iterate for TRAY_SIZE fields in vertical direction
+  for (let i = -1; i < TRAY_SIZE; i++) {
+    const checkY = y + i;
+
+    if (board[x]?.[checkY]) {
+      return "vertical";
+    }
+  }
+
+  // If no overlap or overlap in both directions, return null
+  return null;
 };
 
 export const getNextAvailablePosition = (
@@ -76,6 +83,7 @@ export const getNextAvailablePosition = (
       continue;
     }
 
+    // Found an empty position
     return { x, y };
   }
 
@@ -89,4 +97,19 @@ export const findEmptyTraySlot = (tray: (Letter | null)[]): number => {
     }
   }
   return -1;
+};
+
+export const moveWordLettersToTray = (
+  word: Word,
+  tray: (Letter | null)[]
+): void => {
+  // Move all letters from word back to tray
+  word.letters.forEach((letter) => {
+    if (letter) {
+      const emptySlot = findEmptyTraySlot(tray);
+      if (emptySlot !== -1) {
+        tray[emptySlot] = letter;
+      }
+    }
+  });
 };
