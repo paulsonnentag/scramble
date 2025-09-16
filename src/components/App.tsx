@@ -8,6 +8,7 @@ import {
   getSuggestedOrientation,
   isValidOrientation,
   moveWordLettersToTray,
+  validateWordPlacement,
 } from "../board";
 import { TRAY_SIZE } from "../config";
 import { loadLanguage } from "../languages";
@@ -243,6 +244,23 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
     const hasLetters = player.word.letters.some((letter) => letter !== null);
     if (!hasLetters) return;
 
+    // Validate the word placement
+    if (language) {
+      const currentBoard = computeBoardFromWords(doc.placedWords);
+      const validation = validateWordPlacement(
+        currentBoard,
+        player.word,
+        language
+      );
+
+      if (!validation.isValid) {
+        // TODO: Show error message to user about invalid words
+        console.log("Invalid words:", validation.invalidWords);
+        alert(`Invalid words: ${validation.invalidWords.join(", ")}`);
+        return;
+      }
+    }
+
     changeDoc((doc) => {
       const currentPlayer = doc.players[playerId];
       const currentWord = currentPlayer.word;
@@ -259,7 +277,7 @@ export const App = ({ url }: { url: AutomergeUrl }) => {
         fillTray(currentPlayer.letters, language);
       }
     });
-  }, [changeDoc, playerId, player.word, language]);
+  }, [changeDoc, playerId, player.word, language, doc.placedWords]);
 
   // Handle word rejection
   const handleReject = useCallback(() => {

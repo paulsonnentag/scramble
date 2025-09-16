@@ -1,5 +1,6 @@
 import type { Word, Letter, Position, Orientation } from "./types";
 import { BOARD_HEIGHT, BOARD_WIDTH, TRAY_SIZE } from "./config";
+import type { Language } from "./languages/Language";
 
 export type Board = { [x: number]: { [y: number]: Letter | null } };
 
@@ -123,4 +124,128 @@ export const moveWordLettersToTray = (
       }
     }
   });
+};
+
+export const getNewWordsCreated = (
+  board: Board,
+  placedWord: Word
+): string[] => {
+  const newWords: string[] = [];
+  const { start, orientation, letters } = placedWord;
+
+  // Create a temporary board with the new word placed
+  const tempBoard = structuredClone(board);
+
+  // Place the new word on the temporary board
+  letters.forEach((letter, index) => {
+    if (letter !== null) {
+      const x = orientation === "horizontal" ? start.x + index : start.x;
+      const y = orientation === "vertical" ? start.y + index : start.y;
+
+      if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+        if (!tempBoard[x]) tempBoard[x] = {};
+        tempBoard[x][y] = letter;
+      }
+    }
+  });
+
+  // 1. Check the main word (the word being placed, including gaps filled by existing letters)
+  const mainWord = getWordAtPosition(tempBoard, start, orientation);
+  if (mainWord && mainWord.length > 1) {
+    newWords.push(mainWord);
+  }
+
+  // 2. Check for perpendicular words created by each placed letter
+  letters.forEach((letter, index) => {
+    if (letter !== null) {
+      const x = orientation === "horizontal" ? start.x + index : start.x;
+      const y = orientation === "vertical" ? start.y + index : start.y;
+
+      if (x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT) {
+        // Check perpendicular direction
+        const perpendicularOrientation =
+          orientation === "horizontal" ? "vertical" : "horizontal";
+        const perpendicularWord = getWordAtPosition(
+          tempBoard,
+          { x, y },
+          perpendicularOrientation
+        );
+
+        if (perpendicularWord && perpendicularWord.length > 1) {
+          // Only add if this creates a new word (not just a single letter)
+          const existingWord = getWordAtPosition(
+            board,
+            { x, y },
+            perpendicularOrientation
+          );
+          if (!existingWord || existingWord !== perpendicularWord) {
+            newWords.push(perpendicularWord);
+          }
+        }
+      }
+    }
+  });
+
+  // Remove duplicates and return
+  return [...new Set(newWords)];
+};
+
+const getWordAtPosition = (
+  board: Board,
+  position: Position,
+  orientation: Orientation
+): string | null => {
+  const { x, y } = position;
+  let word = "";
+
+  if (orientation === "horizontal") {
+    // Find the start of the word by going left
+    let startX = x;
+    while (startX > 0 && board[startX - 1]?.[y]) {
+      startX--;
+    }
+
+    // Build the word by going right
+    let currentX = startX;
+    while (currentX < BOARD_WIDTH && board[currentX]?.[y]) {
+      word += board[currentX][y]!.value;
+      currentX++;
+    }
+  } else {
+    // Find the start of the word by going up
+    let startY = y;
+    while (startY > 0 && board[x]?.[startY - 1]) {
+      startY--;
+    }
+
+    // Build the word by going down
+    let currentY = startY;
+    while (currentY < BOARD_HEIGHT && board[x]?.[currentY]) {
+      word += board[x][currentY]!.value;
+      currentY++;
+    }
+  }
+
+  return word.length > 0 ? word : null;
+};
+
+export const validateWordPlacement = (
+  board: Board,
+  placedWord: Word,
+  language: Language
+): { isValid: boolean; invalidWords: string[] } => {
+  const newWords = getNewWordsCreated(board, placedWord);
+  const invalidWords: string[] = [];
+
+  // Validate each new word
+  newWords.forEach((word) => {
+    if (!language.isValidWord(word)) {
+      invalidWords.push(word);
+    }
+  });
+
+  return {
+    isValid: invalidWords.length === 0,
+    invalidWords,
+  };
 };
