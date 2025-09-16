@@ -1,21 +1,27 @@
-export interface Letter {
+export type Position = { x: number; y: number };
+
+export type Letter = {
   id: string;
   value: string;
-}
+};
 
-export type BoardGrid = { [x: number]: { [y: number]: Letter } };
+export type Orientation = "horizontal" | "vertical";
 
-export type LetterGrid = { [x: number]: { [y: number]: Letter } };
+export type Board = { [x: number]: { [y: number]: Letter | null } };
+
+export type TemporaryPlacement = {
+  start: Position;
+  letters: (Letter | null)[];
+  orientation: Orientation;
+};
 
 export type PlayerState = {
-  tray: (Letter | null)[];
-  selectedCell: { x: number; y: number } | null;
-  placementDirection: "horizontal" | "vertical";
-  temporaryPlacements: LetterGrid;
+  letters: (Letter | null)[];
+  temporaryPlacement?: TemporaryPlacement;
 };
 
 export interface GameState {
-  board: BoardGrid;
+  board: Board;
   players: { [playerId: string]: PlayerState };
   language: string; // Language code (e.g., "en", "de")
 }

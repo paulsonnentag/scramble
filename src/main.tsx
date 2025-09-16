@@ -33,8 +33,6 @@ async function initializeApp() {
   (window as any).handle = handle; // we'll use this later for experimentation
   (window as any).repo = repo;
 
-  console.log(handle.doc());
-
   createRoot(document.getElementById("root") as HTMLElement).render(
     <RepoContext.Provider value={repo}>
       <React.StrictMode>

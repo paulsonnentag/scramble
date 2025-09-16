@@ -1,120 +1,70 @@
 import React, { useState, useEffect } from "react";
 import type { Letter } from "../types";
 import { LetterView } from "./Letter";
-import { TRAY_SIZE } from "../config";
+import { BOARD_HEIGHT, BOARD_WIDTH, TRAY_SIZE } from "../config";
+import { CheckIcon, XIcon, DeleteIcon } from "lucide-react";
+import { Button } from "./Button";
 
 interface LetterTrayProps {
   letters: (Letter | null)[];
   onLetterClick: (letter: Letter) => void;
-  hasTemporaryPlacements: boolean;
+  canAccept: boolean;
+  canReject: boolean;
+  canBackspace: boolean;
   onAccept: () => void;
   onReject: () => void;
   onBackspace: () => void;
 }
 
+const GRID_STYLE = {
+  display: "grid",
+  gridTemplateColumns: `repeat(${TRAY_SIZE + 1}, 1fr)`,
+  gridTemplateRows: `repeat(2, 1fr)`,
+  gap: "4px",
+  width: "100%",
+  aspectRatio: `${TRAY_SIZE + 1}/2`,
+  maxWidth: "500px",
+  margin: "auto",
+};
+
+const REJECT_BUTTON_STYLE = {
+  gridColumn: 1,
+};
+
+const ACCEPT_BUTTON_STYLE = {
+  gridColumn: TRAY_SIZE + 1,
+};
+
 export const LetterTray: React.FC<LetterTrayProps> = ({
   letters,
   onLetterClick,
-  hasTemporaryPlacements,
+  canAccept,
+  canReject,
+  canBackspace,
   onAccept,
   onReject,
   onBackspace,
 }) => {
-  // Create a fixed array of slots to maintain positions - pad with nulls if needed
-  const letterSlots = Array.from(
-    { length: TRAY_SIZE },
-    (_, index) => letters[index] || null
-  );
-
-  const [screenWidth, setScreenWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1024
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setScreenWidth(window.innerWidth);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const buttonSize = Math.max(Math.min(screenWidth / 12, 48), 36);
-  const actionButtonHeight = Math.max(Math.min(screenWidth / 15, 40), 32);
-
   return (
-    <div className="bg-white p-2 sm:p-4 rounded-lg shadow-lg max-w-full">
-      {/* Top row: Letters + Delete button */}
-      <div className="flex items-center justify-center gap-1 sm:gap-2 mb-2 flex-wrap">
-        {/* Letter slots */}
-        {letterSlots.map((letter, index) => (
-          <LetterView
-            key={index}
-            letter={letter}
-            onClick={() => letter && onLetterClick(letter)}
-            variant="tray"
-          />
-        ))}
+    <div style={GRID_STYLE}>
+      {letters.map((letter, index) => (
+        <div key={letter?.id} style={{ gridColumn: index + 1 }}>
+          {letter && (
+            <LetterView letter={letter} onClick={() => onLetterClick(letter)} />
+          )}
+        </div>
+      ))}
 
-        {/* Delete button */}
-        <button
-          onClick={onBackspace}
-          className="bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105 rounded-lg font-bold"
-          style={{
-            width: `${buttonSize}px`,
-            height: `${buttonSize}px`,
-            fontSize: `${buttonSize * 0.375}px`,
-          }}
-          title="Backspace"
-        >
-          ⌫
-        </button>
-      </div>
+      <Button onClick={onBackspace}>
+        <DeleteIcon />
+      </Button>
 
-      {/* Bottom row: Accept and Reject buttons (right aligned) */}
-      <div className="flex justify-end gap-1 sm:gap-2">
-        <button
-          onClick={onAccept}
-          disabled={!hasTemporaryPlacements}
-          className={`
-            rounded-lg font-bold
-            ${
-              hasTemporaryPlacements
-                ? "bg-green-100 text-green-700 hover:bg-green-200 hover:scale-105"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-            }
-          `}
-          style={{
-            width: `${buttonSize}px`,
-            height: `${actionButtonHeight}px`,
-            fontSize: `${actionButtonHeight * 0.5}px`,
-          }}
-          title="Accept"
-        >
-          ✓
-        </button>
-
-        <button
-          onClick={onReject}
-          disabled={!hasTemporaryPlacements}
-          className={`
-            rounded-lg font-bold 
-            ${
-              hasTemporaryPlacements
-                ? "bg-red-100 text-red-700 hover:bg-red-200 hover:scale-105"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-            }
-          `}
-          style={{
-            width: `${buttonSize}px`,
-            height: `${actionButtonHeight}px`,
-            fontSize: `${actionButtonHeight * 0.5}px`,
-          }}
-          title="Reject"
-        >
-          ✗
-        </button>
-      </div>
+      <Button variant="negative" onClick={onReject} style={REJECT_BUTTON_STYLE}>
+        <XIcon />
+      </Button>
+      <Button variant="positive" onClick={onAccept} style={ACCEPT_BUTTON_STYLE}>
+        <CheckIcon />
+      </Button>
     </div>
   );
 };

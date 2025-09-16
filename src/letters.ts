@@ -1,5 +1,10 @@
-import type { Letter, GameState } from "./types";
-import { TRAY_SIZE, TARGET_VOWEL_RATIO } from "./config";
+import type { Letter, GameState, Board } from "./types";
+import {
+  TRAY_SIZE,
+  TARGET_VOWEL_RATIO,
+  BOARD_WIDTH,
+  BOARD_HEIGHT,
+} from "./config";
 import { Language } from "./languages/Language";
 
 export function fillTray(
@@ -68,17 +73,40 @@ export async function createInitialGameState(
   const { loadLanguage } = await import("./languages");
   const language = await loadLanguage(languageCode as any);
 
-  const initialTray = new Array(TRAY_SIZE).fill(null);
-  fillTray(initialTray, language);
+  const tray = new Array(TRAY_SIZE).fill(null);
+  fillTray(tray, language);
+
+  // create empty board
+  const board: Board = {};
+  for (let x = 0; x < BOARD_WIDTH; x++) {
+    board[x] = {};
+    for (let y = 0; y < BOARD_HEIGHT; y++) {
+      board[x][y] = null;
+    }
+  }
+
+  // Initialize board with "SCRAMBLE" in the middle
+  const word = "SCRAMBLE";
+  const startX = Math.floor((BOARD_WIDTH - word.length) / 2);
+  const middleY = Math.floor(BOARD_HEIGHT / 2);
+
+  word.split("").forEach((letter, index) => {
+    const x = startX + index;
+    console.log(x, middleY);
+
+    board[x][middleY] = {
+      id: crypto.randomUUID(),
+      value: letter,
+    };
+  });
+
+  console.log("init", board);
 
   return {
-    board: {},
+    board,
     players: {
       [playerId]: {
-        tray: initialTray,
-        selectedCell: null,
-        placementDirection: "horizontal",
-        temporaryPlacements: {},
+        letters: tray,
       },
     },
     language: languageCode,
